@@ -39,7 +39,13 @@ const Login = () => {
     <div className="hero min-h-screen bg-base-200">
       <div className="hero-content flex-col">
         <div className="text-center">
-          <h1 className="text-5xl font-bold">Connexion</h1>
+          <img
+            width={80}
+            src="https://img.freepik.com/vecteurs-libre/vecteur-degrade-logo-colore-oiseau_343694-1365.jpg"
+            alt="logo"
+            className="mx-auto"
+          />
+          <h1 className="text-5xl font-bold">Inscription</h1>
         </div>
         <div className="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
           <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
