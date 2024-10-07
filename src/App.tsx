@@ -6,7 +6,6 @@ import Register from "./pages/register";
 
 const PrivateRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem("auth");
-  console.log("isauthed", isAuthenticated);
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 

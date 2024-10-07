@@ -1,20 +1,29 @@
+import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import * as Yup from "yup";
 import { authService } from "../services/auth-service";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const initialValues = {
+    email: "",
+    password: "",
+  };
+
+  const validationSchema = Yup.object({
+    email: Yup.string().email("Email invalide").required("Email requis"),
+    password: Yup.string().required("Mot de passe requis"),
+  });
+
+  const handleSubmit = (values, { setSubmitting }) => {
     setError("");
     setSuccess("");
 
-    const result = authService.login(email, password);
+    const result = authService.login(values.email, values.password);
     if (result.success) {
       setSuccess("Connexion réussie. Redirection...");
       setTimeout(() => {
@@ -23,6 +32,7 @@ const Login = () => {
     } else {
       setError(result.error);
     }
+    setSubmitting(false);
   };
 
   return (
@@ -32,46 +42,41 @@ const Login = () => {
           <h1 className="text-5xl font-bold">Connexion</h1>
         </div>
         <div className="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-          <form onSubmit={handleSubmit} className="card-body">
-            {error && <div className="alert alert-error">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Email</span>
-              </label>
-              <input
-                type="email"
-                placeholder="email"
-                className="input input-bordered"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Mot de passe</span>
-              </label>
-              <input
-                type="password"
-                placeholder="mot de passe"
-                className="input input-bordered"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <label className="label">
-                <Link to="/forgot-password" className="label-text-alt link link-hover">
-                  Mot de passe oublié?
-                </Link>
-              </label>
-            </div>
-            <div className="form-control mt-6">
-              <button type="submit" className="btn btn-primary">
-                Se connecter
-              </button>
-            </div>
-          </form>
+          <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
+            {({ isSubmitting }) => (
+              <Form className="card-body">
+                {error && <div className="alert alert-error">{error}</div>}
+                {success && <div className="alert alert-success">{success}</div>}
+
+                <div className="form-control">
+                  <label className="label" htmlFor="email">
+                    <span className="label-text">Email</span>
+                  </label>
+                  <Field type="email" name="email" placeholder="email" className="input input-bordered" />
+                  <ErrorMessage name="email" component="div" className="text-error text-sm mt-1" />
+                </div>
+
+                <div className="form-control">
+                  <label className="label" htmlFor="password">
+                    <span className="label-text">Mot de passe</span>
+                  </label>
+                  <Field type="password" name="password" placeholder="mot de passe" className="input input-bordered" />
+                  <ErrorMessage name="password" component="div" className="text-error text-sm mt-1" />
+                  <label className="label">
+                    <Link to="/forgot-password" className="label-text-alt link link-hover">
+                      Mot de passe oublié?
+                    </Link>
+                  </label>
+                </div>
+
+                <div className="form-control mt-6">
+                  <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                    Se connecter
+                  </button>
+                </div>
+              </Form>
+            )}
+          </Formik>
         </div>
         <div className="text-center mt-4">
           <p>

@@ -21,7 +21,7 @@ const Navbar = () => {
       <div className="flex-none">
         {isAuthenticated ? (
           <>
-            <span className="mr-4">Bienvenue, {currentUser?.email}</span>
+            <span className="mr-4">Bienvenue, {currentUser?.username}</span>
             <Link to="/dashboard" className="btn btn-ghost normal-case">
               Tableau de bord
             </Link>

@@ -1,4 +1,3 @@
-// authService.js
 const AUTH_KEY = "auth";
 const USERS_KEY = "users";
 
@@ -8,18 +7,24 @@ export const authService = {
     const user = users.find((u) => u.email === email && u.password === password);
     if (user) {
       const token = Math.random().toString(36).substr(2);
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ user: { id: user.id, email: user.email }, token }));
+      localStorage.setItem(
+        AUTH_KEY,
+        JSON.stringify({
+          user: { id: user.id, email: user.email, username: user.username, firstname: user.firstname, lastname: user.lastname },
+          token,
+        })
+      );
       return { success: true, user: { id: user.id, email: user.email } };
     }
     return { success: false, error: "Invalid email or password" };
   },
 
-  register: (email: string, password: string) => {
+  register: (firstname: string, lastname: string, username: string, email: string, password: string) => {
     const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
     if (users.some((u) => u.email === email)) {
       return { success: false, error: "Email already exists" };
     }
-    const newUser = { id: users.length + 1, email, password };
+    const newUser = { id: users.length + 1, firstname, lastname, username, email, password };
     users.push(newUser);
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
     return { success: true, user: { id: newUser.id, email: newUser.email } };
