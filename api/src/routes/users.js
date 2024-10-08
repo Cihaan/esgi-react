@@ -29,4 +29,11 @@ export function usersRoutes(app) {
   app.get("/verify-email/:token", async (request, reply) => {
     reply.send(await verifyEmail(request.params.token));
   });
+
+  app.get("/users/me", async (request, reply) => {
+    const token = request.headers["authorization"].split(" ")[1];
+    const id = app.jwt.decode(token).id;
+    const user = await getUserById(id);
+    reply.send(user);
+  });
 }

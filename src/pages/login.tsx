@@ -1,6 +1,6 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import { authService } from "../services/auth-service";
 
@@ -8,6 +8,8 @@ const Login = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const message = location.state?.message;
 
   const initialValues = {
     email: "",
@@ -51,6 +53,7 @@ const Login = () => {
           <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
             {({ isSubmitting }) => (
               <Form className="card-body">
+                {message && <div className="alert alert-info">{message}</div>}
                 {error && <div className="alert alert-error">{error}</div>}
                 {success && <div className="alert alert-success">{success}</div>}
 

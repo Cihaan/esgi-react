@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import Navbar from "./components/navbar";
+import { UserProvider, useUser } from "./contexts/userContext";
 import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import Register from "./pages/register";
 
-const PrivateRoute = ({ children }) => {
-  const isAuthenticated = !!localStorage.getItem("auth");
-  return isAuthenticated ? children : <Navigate to="/login" />;
+const PrivateRoute = ({ element }) => {
+  const { isLoggedIn } = useUser();
+
+  return isLoggedIn() ? element : <Navigate to="/login" state={{ message: "You must be logged in to access this page." }} />;
 };
 
 function App() {
@@ -26,20 +28,15 @@ function App() {
 
   return (
     <Router>
-      <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-      </Routes>
+      <UserProvider>
+        <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={<PrivateRoute element={<Dashboard />} />} />
+          <Route path="/" element={<Navigate to="/dashboard" />} />
+        </Routes>
+      </UserProvider>
     </Router>
   );
 }

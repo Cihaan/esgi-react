@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import { authService } from "../services/auth-service";
 
 const Dashboard = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    authService.logout();
     navigate("/login");
   };
 

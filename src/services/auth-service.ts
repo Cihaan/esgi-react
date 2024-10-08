@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const AUTH_KEY = "auth";
-const USERS_KEY = "users";
+const AUTH_KEY = "auth_token";
+const USER_KEY = "user";
 
 const API_URL = "http://localhost:3000"; // Adjust the URL as needed
 
@@ -14,7 +14,11 @@ export const authService = {
         return { success: false, error: response.data.error };
       }
 
-      return { success: true, data: response.data };
+      const token = response.data.token;
+      localStorage.setItem(AUTH_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+
+      return { success: true, user: response.data.user };
     } catch (error) {
       return { success: false, error: error.response?.data?.error || "An error occurred" };
     }
@@ -36,14 +40,29 @@ export const authService = {
 
   logout: () => {
     localStorage.removeItem(AUTH_KEY);
-  },
-
-  getCurrentUser: () => {
-    const auth = JSON.parse(localStorage.getItem(AUTH_KEY));
-    return auth ? auth.user : null;
+    localStorage.removeItem(USER_KEY);
   },
 
   isAuthenticated: () => {
     return !!localStorage.getItem(AUTH_KEY);
+  },
+
+  getCurrentUser: async () => {
+    try {
+      const token = localStorage.getItem(AUTH_KEY);
+      const response = await axios.get(`${API_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.error) {
+        return { success: false, error: response.data.error };
+      }
+
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.error || "An error occurred" };
+    }
   },
 };
