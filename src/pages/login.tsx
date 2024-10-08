@@ -19,11 +19,11 @@ const Login = () => {
     password: Yup.string().required("Mot de passe requis"),
   });
 
-  const handleSubmit = (values, { setSubmitting }) => {
+  const handleSubmit = async (values, { setSubmitting }) => {
     setError("");
     setSuccess("");
 
-    const result = authService.login(values.email, values.password);
+    const result = await authService.login(values.email, values.password);
     if (result.success) {
       setSuccess("Connexion réussie. Redirection...");
       setTimeout(() => {

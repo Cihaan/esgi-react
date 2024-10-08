@@ -29,11 +29,11 @@ const Register = () => {
       .required("Confirmation du mot de passe requise"),
   });
 
-  const handleSubmit = (values, { setSubmitting }) => {
+  const handleSubmit = async (values, { setSubmitting }) => {
     setError("");
     setSuccess("");
 
-    const result = authService.register(values.firstname, values.lastname, values.username, values.email, values.password);
+    const result = await authService.register(values.firstname, values.lastname, values.username, values.email, values.password);
     if (result.success) {
       setSuccess("Inscription réussie. Redirection vers la page de connexion...");
       setTimeout(() => {

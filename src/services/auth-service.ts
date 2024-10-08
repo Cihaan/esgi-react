@@ -1,33 +1,37 @@
+import axios from "axios";
+
 const AUTH_KEY = "auth";
 const USERS_KEY = "users";
 
+const API_URL = "http://localhost:3000"; // Adjust the URL as needed
+
 export const authService = {
-  login: (email: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    const user = users.find((u) => u.email === email && u.password === password);
-    if (user) {
-      const token = Math.random().toString(36).substr(2);
-      localStorage.setItem(
-        AUTH_KEY,
-        JSON.stringify({
-          user: { id: user.id, email: user.email, username: user.username, firstname: user.firstname, lastname: user.lastname },
-          token,
-        })
-      );
-      return { success: true, user: { id: user.id, email: user.email } };
+  login: async (email: string, password: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/login`, { email, password });
+
+      if (response.data.error) {
+        return { success: false, error: response.data.error };
+      }
+
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.error || "An error occurred" };
     }
-    return { success: false, error: "Invalid email or password" };
   },
 
-  register: (firstname: string, lastname: string, username: string, email: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    if (users.some((u) => u.email === email)) {
-      return { success: false, error: "Email already exists" };
+  register: async (firstname: string, lastname: string, username: string, email: string, password: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/register`, { firstname, lastname, username, email, password });
+
+      if (response.data.error) {
+        return { success: false, error: response.data.error };
+      }
+
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.error || "An error occurred" };
     }
-    const newUser = { id: users.length + 1, firstname, lastname, username, email, password };
-    users.push(newUser);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    return { success: true, user: { id: newUser.id, email: newUser.email } };
   },
 
   logout: () => {
