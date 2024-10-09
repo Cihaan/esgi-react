@@ -65,7 +65,7 @@ const Dashboard = () => {
 
       // ...
     } catch (error) {
-      setError(`Error: ${error.response.data.error}`);
+      setError(`Error: ${error.response.error}`);
     } finally {
       await fetchGames(); // Refresh the list of games
     }
