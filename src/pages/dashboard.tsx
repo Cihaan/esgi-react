@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import gameCard from "../components/game-card";
 import { useUser } from "../contexts/userContext";
@@ -13,16 +13,8 @@ const Dashboard = () => {
   const [gameState, setGameState] = useState(null);
   const [games, setGames] = useState([]);
   const API_URL = "http://localhost:3000";
-  const wsRef = useRef(null);
 
   useEffect(() => {
-    // Connect to WebSocket when component mounts
-    wsRef.current = new WebSocket("ws://localhost:3000/gameStream");
-
-    wsRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-    };
-
     // Fetch available games when component mounts
     fetchGames();
   }, []);
@@ -39,7 +31,7 @@ const Dashboard = () => {
       });
       setGames(response.data);
     } catch (error) {
-      setError(`Error: ${error.response.data.error}`);
+      setError(`Error: ${error.response.error}`);
     }
   };
 
@@ -94,34 +86,6 @@ const Dashboard = () => {
     } finally {
       await fetchGames(); // Refresh the list of games
     }
-  };
-
-  const makeMove = (col) => {
-    if (!gameState || !wsRef.current) return;
-
-    // Send move to server via WebSocket
-    wsRef.current.send(
-      JSON.stringify({
-        type: "move",
-        move: { col },
-        player: user.id,
-        gameId: gameState.id,
-      })
-    );
-  };
-
-  const sendChat = (message) => {
-    if (!gameState || !wsRef.current) return;
-
-    // Send chat message to server via WebSocket
-    wsRef.current.send(
-      JSON.stringify({
-        type: "chat",
-        message,
-        player: user.id,
-        gameId: gameState.id,
-      })
-    );
   };
 
   return (

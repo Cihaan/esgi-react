@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { io } from "socket.io-client";
 import Board from "../components/board";
 
 const ROWS = 6;
@@ -11,10 +12,31 @@ const Game = () => {
   const [currentPlayer, setCurrentPlayer] = useState<1 | 2>(1);
   const [winner, setWinner] = useState<number | null>(null);
   const [winningCells, setWinningCells] = useState<[number, number][]>([]);
+  const socketRef = useRef<any>(null);
+
+  const socket = io("http://localhost:3000");
 
   useEffect(() => {
-    checkWinner();
-  }, [board]);
+    socketRef.current = socket;
+    // Add event listeners for socket events
+    socket.on("connect", () => {
+      console.log("Connected to server");
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from server");
+    });
+
+    socket.on("move", (data: any) => {
+      // Handle move received from server
+      console.log("Move received:", data);
+    });
+
+    // Clean up socket connection on component unmount
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const dropPiece = (col: number) => {
     if (winner) return;
@@ -25,6 +47,10 @@ const Game = () => {
         newBoard[row][col] = currentPlayer;
         setBoard(newBoard);
         setCurrentPlayer(currentPlayer === 1 ? 2 : 1);
+
+        // Send move to server
+        socketRef.current.emit("move", { gameId, playerId: socketRef.current.id, col });
+
         break;
       }
     }

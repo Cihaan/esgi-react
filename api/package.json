@@ -19,7 +19,8 @@
 		"mjml": "4.15.3",
 		"mysql2": "3.11.3",
 		"nodemailer": "6.9.15",
-		"sequelize": "^6.37.3"
+		"sequelize": "^6.37.3",
+		"socket.io": "^4.8.0"
 	},
 	"scripts": {
 		"dev": "node --env-file=.env --watch src/server.js"
