@@ -107,7 +107,14 @@ const Game = () => {
               </button>
             </div>
           )}
-          {winner === null && <p className="mt-4 text-lg">Current Player: {currentPlayer === 1 ? "Blue" : "Pink"}</p>}
+          {winner === null && (
+            <p className="mt-4 text-lg">
+              Player's turn :{" "}
+              <span className={currentPlayer === 1 ? "text-primary font-bold" : "text-secondary font-bold"}>
+                {currentPlayer === 1 ? "Blue" : "Pink"}
+              </span>
+            </p>
+          )}
         </div>
       </div>
     </div>
