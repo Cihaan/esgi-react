@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import Board from "../components/board";
 
 const ROWS = 6;
 const COLS = 7;
@@ -91,27 +92,7 @@ const Game = () => {
         <div className="max-w-md">
           <h1 className="text-4xl font-bold mb-6">Connect Four - Game {gameId}</h1>
           <div className="bg-base-100 p-4 rounded-box shadow-xl">
-            {board.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex justify-center">
-                {row.map((cell, colIndex) => (
-                  <div
-                    key={colIndex}
-                    className="w-12 h-12 border border-base-300 m-1 rounded-full flex items-center justify-center cursor-pointer"
-                    onClick={() => dropPiece(colIndex)}
-                  >
-                    {cell !== 0 && (
-                      <div
-                        className={`w-10 h-10 rounded-full ${cell === 1 ? "bg-primary" : "bg-secondary"} ${
-                          winningCells.some(([r, c]) => r === rowIndex && c === colIndex)
-                            ? "ring-4 ring-accent ring-offset-2"
-                            : ""
-                        }`}
-                      ></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
+            <Board board={board} winningCells={winningCells} dropPiece={dropPiece} />
           </div>
 
           {winner !== null && (
@@ -126,7 +107,7 @@ const Game = () => {
               </button>
             </div>
           )}
-          {winner === null && <p className="mt-4 text-lg">Current Player: {currentPlayer === 1 ? "Red" : "Yellow"}</p>}
+          {winner === null && <p className="mt-4 text-lg">Current Player: {currentPlayer === 1 ? "Blue" : "Pink"}</p>}
         </div>
       </div>
     </div>

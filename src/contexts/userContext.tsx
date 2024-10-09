@@ -11,7 +11,6 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     async function fetchData() {
       const storedUser = await authService.getCurrentUser();
-      console.log("Fetched user:", storedUser); // Debugging log
       if (storedUser.success) {
         setUser(storedUser.user);
       }
@@ -21,7 +20,6 @@ export const UserProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const result = await authService.login(email, password);
-    console.log("Login result:", result); // Debugging log
     if (result.success) {
       setUser(result.user);
       navigate("/dashboard");
@@ -43,8 +41,6 @@ export const UserProvider = ({ children }) => {
   const isLoggedIn = () => {
     return authService.isAuthenticated();
   };
-
-  console.log("Current user state:", user); // Debugging log
 
   return <UserContext.Provider value={{ user, login, logout, isLoggedIn, getToken }}>{children}</UserContext.Provider>;
 };

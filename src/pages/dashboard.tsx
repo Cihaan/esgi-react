@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import gameCard from "../components/game-card";
 import { useUser } from "../contexts/userContext";
 
 const Dashboard = () => {
@@ -151,35 +152,7 @@ const Dashboard = () => {
               {games.length > 0 && (
                 <div className="mt-4">
                   <h2 className="text-2xl font-bold">Available Games</h2>
-                  <ul className="list-disc list-inside">
-                    {games.map((game) => (
-                      <div className="card bg-base-100 w-96 shadow-xl mb-5" key={game.id}>
-                        <figure>
-                          <img src="https://m.media-amazon.com/images/I/81ZNRHJ+cIL._AC_SL1500_.jpg" alt="Connect 4" />
-                        </figure>
-                        <div className="card-body">
-                          <h2 className="card-title">Games {game.id}</h2>
-                          <p>{game.state}</p>
-                          <div className="card-actions justify-end">
-                            <button
-                              className="btn btn-primary"
-                              onClick={() => joinGame(game.id)}
-                              disabled={game.state === "pending" ? false : true}
-                            >
-                              Join
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {gameState && (
-                <div className="mt-4">
-                  <h2>Game Board</h2>
-                  {/* Add your Connect 4 game board rendering here */}
-                  {/* Use the makeMove function when a player clicks a column */}
+                  <ul className="list-disc list-inside">{games.map((game) => gameCard({ game, joinGame }))}</ul>
                 </div>
               )}
               {message && (

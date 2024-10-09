@@ -1,25 +1,23 @@
-const Connect4Board = ({ board, onMakeMove, currentPlayer }) => {
-  const renderCell = (cell, rowIndex, colIndex) => {
-    const cellColor = cell === 1 ? "bg-red-500" : cell === 2 ? "bg-yellow-500" : "bg-white";
-    return (
-      <div
-        key={`${rowIndex}-${colIndex}`}
-        className={`w-12 h-12 rounded-full ${cellColor} border-2 border-blue-500 m-1`}
-        onClick={() => onMakeMove(colIndex)}
-      />
-    );
-  };
-
-  return (
-    <div className="bg-blue-400 p-4 rounded-lg">
-      {board.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex">
-          {row.map((cell, colIndex) => renderCell(cell, rowIndex, colIndex))}
+const Board = ({ board, winningCells, dropPiece }) => {
+  return board.map((row, rowIndex) => (
+    <div key={rowIndex} className="flex justify-center">
+      {row.map((cell, colIndex) => (
+        <div
+          key={colIndex}
+          className="w-12 h-12 border border-base-300 m-1 rounded-full flex items-center justify-center cursor-pointer"
+          onClick={() => dropPiece(colIndex)}
+        >
+          {cell !== 0 && (
+            <div
+              className={`w-10 h-10 rounded-full ${cell === 1 ? "bg-primary" : "bg-secondary"} ${
+                winningCells.some(([r, c]) => r === rowIndex && c === colIndex) ? "ring-4 ring-accent ring-offset-2" : ""
+              }`}
+            ></div>
+          )}
         </div>
       ))}
-      <div className="mt-4 text-white font-bold">Current Player: {currentPlayer === 1 ? "Red" : "Yellow"}</div>
     </div>
-  );
+  ));
 };
 
-export default Connect4Board;
+export default Board;
