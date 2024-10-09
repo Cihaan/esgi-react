@@ -60,7 +60,7 @@ export const authService = {
         return { success: false, error: response.data.error };
       }
 
-      return { success: true, user: response.data.user };
+      return { success: true, user: response.data };
     } catch (error) {
       return { success: false, error: error.response?.data?.error || "An error occurred" };
     }
