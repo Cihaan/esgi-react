@@ -4,15 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import gameCard from '../components/game-card';
 import { useUser } from '../contexts/userContext';
 
-interface GameWithScore {
-  id: string;
-  state: string;
-  winnerScore: number;
-  player1: { id: string; username: string };
-  player2: { id: string; username: string };
-  winner: { id: string; username: string } | null;
-}
-
 const Dashboard = () => {
   const [userStats, setUserStats] = useState({
     totalGames: 0,
@@ -85,8 +76,6 @@ const Dashboard = () => {
       setMessage(`Game created with ID: ${response.data.game.id}`);
       setGameState({ id: response.data.game.id, board: Array(6).fill(Array(7).fill(null)) });
       navigate('/game/' + response.data.game.id);
-
-      // ...
     } catch (error) {
       setError(`Error: ${error.response.error}`);
     } finally {
@@ -96,92 +85,179 @@ const Dashboard = () => {
 
   const joinGame = async (thisGame) => {
     const token = getToken();
-    if (!isLoggedIn() || !user || !thisGame) {
-      setMessage('Unable to join game. Check login status and game ID.');
+
+    // Input validation
+    if (!thisGame?.trim()) {
+      setError('Please enter a valid game ID');
       return;
     }
+
+    if (!isLoggedIn() || !user) {
+      setMessage('Please log in to join a game.');
+      return;
+    }
+
     try {
+      setError(''); // Clear any previous errors
+      setMessage('Joining game...'); // Show loading state
+
       const response = await axios.patch(
         `${API_URL}/game/join/${thisGame}`,
         { userId: user.id },
         { headers: { authorization: `Bearer ${token}` } }
       );
+
       if (response.data.error) {
         setError(`Error: ${response.data.error}`);
+        setMessage('');
         return;
       }
-      setGameState({ id: response.data.id, board: Array(6).fill(Array(7).fill(null)) });
-      navigate('/game/' + response.data.id);
+
+      // Show success message before navigating
+      setMessage('Successfully joined game!');
+
+      // Set game state
+      setGameState({
+        id: response.data.id,
+        board: Array(6).fill(Array(7).fill(null)),
+      });
+
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(`Failed to join game: ${errorMessage}`);
+
+      // Navigate to the game
+      navigate(`/game/${response.data.id}`);
     } catch (error) {
-      setError(`Error: ${error.response.data.error}`);
-    } finally {
-      await fetchGames(); // Refresh the list of games
+      console.log('error', error);
+      setError(`Error: ${error.response.error}`);
     }
   };
 
   return (
-    <div className="hero min-h-screen bg-base-200">
-      <div className="hero-content text-center">
-        <div className="max-w-md">
-          <h1 className="text-5xl font-bold">Dashboard</h1>
-          <p className="py-6">Welcome to your personal dashboard.</p>
-          {isLoggedIn() ? (
-            <>
-              <div className="stats shadow mb-8">
-                <div className="stat">
-                  <div className="stat-title">Total Games</div>
-                  <div className="stat-value">{userStats.totalGames}</div>
-                </div>
+    <div className="p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl lg:text-5xl font-bold">Dashboard</h1>
+          <p className="py-4">Welcome to Connect 4.</p>
+        </div>
 
-                <div className="stat">
-                  <div className="stat-title">Wins</div>
-                  <div className="stat-value">{userStats.wins}</div>
-                </div>
-
-                <div className="stat">
-                  <div className="stat-title">Total Score</div>
-                  <div className="stat-value">{userStats.totalScore}</div>
-                </div>
-              </div>
-
-              <div>
-                <button onClick={createGame} className="btn btn-primary mt-4">
-                  Create Game
-                </button>
-              </div>
-              <div className="mt-4">
-                <input
-                  type="text"
-                  placeholder="Game ID"
-                  value={gameId}
-                  onChange={(e) => setGameId(e.target.value)}
-                  className="input input-bordered w-full max-w-xs"
+        {/* Alerts */}
+        <div className="space-y-4">
+          {message && (
+            <div className="alert alert-info">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+              <span>{message}</span>
+            </div>
+          )}
+          {error && (
+            <div className="alert alert-error">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
-                <button onClick={joinGame} className="btn btn-secondary mt-4">
-                  Join Game
-                </button>
-              </div>
-              {games.length > 0 && (
-                <div className="mt-4">
-                  <h2 className="text-2xl font-bold">Available Games</h2>
-                  <ul className="list-disc list-inside">{games.map((game) => gameCard({ game, joinGame }))}</ul>
-                </div>
-              )}
-              {message && (
-                <div className="alert alert-info mt-4">
-                  <p>{message}</p>
-                </div>
-              )}
-              {error && (
-                <div className="alert alert-error mt-4">
-                  <p>{error}</p>
-                </div>
-              )}
-            </>
-          ) : (
-            <p>Please log in to create or join games.</p>
+              </svg>
+              <span>{error}</span>
+            </div>
           )}
         </div>
+
+        <br />
+
+        {isLoggedIn() ? (
+          <div className="space-y-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="stats bg-teal-100 text-primary-content shadow">
+                <div className="stat">
+                  <div className="stat-title">Total Games</div>
+                  <div className="stat-value text-slate-500">{userStats.totalGames}</div>
+                </div>
+              </div>
+
+              <div className="stats bg-teal-100 text-secondary-content shadow">
+                <div className="stat">
+                  <div className="stat-title">Wins</div>
+                  <div className="stat-value text-slate-500">{userStats.wins}</div>
+                </div>
+              </div>
+
+              <div className="stats bg-teal-100 text-accent-content shadow">
+                <div className="stat">
+                  <div className="stat-title">Total Score</div>
+                  <div className="stat-value text-slate-500">{userStats.totalScore}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Game Controls */}
+            <div className="card bg-base-200 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title justify-center mb-4">Game Controls</h2>
+                <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                  <button onClick={createGame} className="btn btn-primary w-full md:w-auto">
+                    Create New Game
+                  </button>
+                  <div className="join w-full md:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Enter Game ID to Join"
+                      value={gameId}
+                      onChange={(e) => setGameId(e.target.value)}
+                      className="input input-bordered join-item w-full md:w-64"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          joinGame(gameId);
+                        }
+                      }}
+                    />
+                    <button onClick={() => joinGame(gameId)} className="btn btn-secondary join-item" disabled={!gameId.trim()}>
+                      Join Game
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Available Games */}
+            {games.length > 0 && (
+              <div className="card bg-base-200 shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title justify-center">Available Games</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    {games.map((game) => (
+                      <div key={game.id} className="card bg-base-100 shadow-sm">
+                        {gameCard({ game, joinGame })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="card bg-base-200 shadow-xl">
+            <div className="card-body items-center text-center">
+              <h2 className="card-title">Not Logged In</h2>
+              <p>Please log in to create or join games.</p>
+              <div className="card-actions justify-end">
+                <button className="btn btn-primary" onClick={() => navigate('/login')}>
+                  Log In
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
