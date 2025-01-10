@@ -1,6 +1,6 @@
-import { Sequelize } from "@sequelize/core";
-import { MySqlDialect } from "@sequelize/mysql";
-import dotenv from "dotenv";
+import { Sequelize } from '@sequelize/core';
+import { MySqlDialect } from '@sequelize/mysql';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -9,9 +9,9 @@ dotenv.config();
  */
 export const sequelize = new Sequelize({
   dialect: MySqlDialect,
-  database: "db",
-  user: "root",
-  password: "password",
-  host: "localhost",
+  database: 'esgi-react',
+  user: 'root',
+  password: 'password',
+  host: 'localhost',
   port: 3306,
 });
