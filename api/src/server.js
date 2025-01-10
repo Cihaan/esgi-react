@@ -1,24 +1,25 @@
-import chalk from "chalk";
+import chalk from 'chalk';
 //pour fastify
-import cors from "@fastify/cors";
-import fastifyJWT from "@fastify/jwt";
-import fastifySwagger from "@fastify/swagger";
-import fastifySwaggerUi from "@fastify/swagger-ui";
-import fastify from "fastify";
-import fastifyBcrypt from "fastify-bcrypt";
+import cors from '@fastify/cors';
+import fastifyJWT from '@fastify/jwt';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import fastify from 'fastify';
+import fastifyBcrypt from 'fastify-bcrypt';
 //routes
-import { gamesRoutes } from "./routes/games.js";
-import { usersRoutes } from "./routes/users.js";
+import { gamesRoutes } from './routes/games.js';
+import { usersRoutes } from './routes/users.js';
 //bdd
-import { Server } from "socket.io";
-import { sequelize } from "./bdd.js";
+import { Server } from 'socket.io';
+import { sequelize } from './bdd.js';
+import { getGameById, updateGame } from './controllers/games.js';
 
 //Test de la connexion
 try {
   sequelize.authenticate();
-  console.log(chalk.grey("Connecté à la base de données MySQL!"));
+  console.log(chalk.grey('Connecté à la base de données MySQL!'));
 } catch (error) {
-  console.error("Impossible de se connecter, erreur suivante :", error);
+  console.error('Impossible de se connecter, erreur suivante :', error);
 }
 
 /**
@@ -30,12 +31,8 @@ const app = fastify();
 
 const io = new Server(app.server, {
   cors: {
-    origin: "*",
+    origin: '*',
   },
-});
-
-io.on("connection", (socket) => {
-  console.log("User connected", socket.id);
 });
 
 // Game state
@@ -45,137 +42,231 @@ const games = new Map();
 const ROWS = 6;
 const COLS = 7;
 
-function createGame(gameId) {
-  return {
-    id: gameId,
-    board: Array(ROWS)
-      .fill()
-      .map(() => Array(COLS).fill(0)),
-    currentPlayer: 1,
-    players: [],
-    spectators: [],
-    chat: [],
-  };
-}
-
-function checkWinner(board, row, col) {
-  const directions = [
-    [0, 1],
-    [1, 0],
-    [1, 1],
-    [1, -1],
-  ];
-
-  for (const [dx, dy] of directions) {
-    let count = 1;
-    for (const direction of [-1, 1]) {
-      for (let i = 1; i < 4; i++) {
-        const newRow = row + i * direction * dx;
-        const newCol = col + i * direction * dy;
-        if (newRow < 0 || newRow >= ROWS || newCol < 0 || newCol >= COLS || board[newRow][newCol] !== board[row][col]) {
-          break;
-        }
-        count++;
-      }
-    }
-    if (count >= 4) return true;
-  }
-  return false;
-}
-
-// Socket.IO handler
-io.on("connection", (socket) => {
-  socket.on("join", (data) => {
-    handleJoin(socket, data);
-  });
-
-  socket.on("move", (data) => {
-    handleMove(socket, data);
-  });
-
-  socket.on("disconnect", () => {
-    handleDisconnect(socket);
-  });
+const createGame = (gameId) => ({
+  id: gameId,
+  players: [],
+  board: Array(ROWS)
+    .fill()
+    .map(() => Array(COLS).fill(0)),
+  currentPlayer: 1,
+  status: 'pending',
 });
 
-function handleJoin(socket, data) {
-  const { gameId, playerId } = data;
+const checkWinner = (board) => {
+  const checkLine = (a, b, c, d) => {
+    return (
+      board[a[0]][a[1]] !== 0 &&
+      board[a[0]][a[1]] === board[b[0]][b[1]] &&
+      board[a[0]][a[1]] === board[c[0]][c[1]] &&
+      board[a[0]][a[1]] === board[d[0]][d[1]]
+    );
+  };
 
-  if (!games.has(gameId)) {
-    games.set(gameId, createGame(gameId));
-  }
+  // Store winning cells if found
+  let winningCells = [];
 
-  const game = games.get(gameId);
-
-  if (game.players.length >= 2) {
-    socket.emit("error", { message: "Game is full" });
-    return;
-  }
-
-  game.players.push({ id: playerId, socket });
-  socket.gameId = gameId;
-  socket.playerId = playerId;
-
-  socket.emit("joined", { gameState: game });
-
-  if (game.players.length === 2) {
-    broadcastToGame(game, { type: "gameStart", gameState: game });
-  }
-}
-
-function handleMove(socket, data) {
-  const { gameId, playerId, col } = data;
-  const game = games.get(gameId);
-
-  if (!game) {
-    socket.emit("error", { message: "Game not found" });
-    return;
-  }
-
-  if (game.players[game.currentPlayer - 1].id !== playerId) {
-    socket.emit("error", { message: "Not your turn" });
-    return;
-  }
-
-  for (let row = ROWS - 1; row >= 0; row--) {
-    if (game.board[row][col] === 0) {
-      game.board[row][col] = game.currentPlayer;
-
-      if (checkWinner(game.board, row, col)) {
-        broadcastToGame(game, { type: "gameOver", winner: game.currentPlayer, gameState: game });
-        games.delete(gameId);
-      } else if (game.board.every((row) => row.every((cell) => cell !== 0))) {
-        broadcastToGame(game, { type: "gameOver", winner: 0, gameState: game });
-        games.delete(gameId);
-      } else {
-        game.currentPlayer = game.currentPlayer === 1 ? 2 : 1;
-        broadcastToGame(game, { type: "updateGame", gameState: game });
+  // Check horizontal
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col <= COLS - 4; col++) {
+      if (checkLine([row, col], [row, col + 1], [row, col + 2], [row, col + 3])) {
+        winningCells = [
+          [row, col],
+          [row, col + 1],
+          [row, col + 2],
+          [row, col + 3],
+        ];
+        return { winner: board[row][col], winningCells };
       }
-
-      break;
     }
   }
-}
 
-function handleDisconnect(socket) {
-  const { gameId, playerId } = socket;
-  const game = games.get(gameId);
-
-  if (!game) return;
-
-  game.players = game.players.filter((player) => player.id !== playerId);
-  broadcastToGame(game, { type: "playerDisconnected", playerId });
-
-  if (game.players.length === 0) {
-    games.delete(gameId);
+  // Check vertical
+  for (let row = 0; row <= ROWS - 4; row++) {
+    for (let col = 0; col < COLS; col++) {
+      if (checkLine([row, col], [row + 1, col], [row + 2, col], [row + 3, col])) {
+        winningCells = [
+          [row, col],
+          [row + 1, col],
+          [row + 2, col],
+          [row + 3, col],
+        ];
+        return { winner: board[row][col], winningCells };
+      }
+    }
   }
-}
 
-function broadcastToGame(game, message) {
-  game.players.forEach((pl) => {
-    pl.socket.emit(message.type, message);
+  // Check diagonal (top-left to bottom-right)
+  for (let row = 0; row <= ROWS - 4; row++) {
+    for (let col = 0; col <= COLS - 4; col++) {
+      if (checkLine([row, col], [row + 1, col + 1], [row + 2, col + 2], [row + 3, col + 3])) {
+        winningCells = [
+          [row, col],
+          [row + 1, col + 1],
+          [row + 2, col + 2],
+          [row + 3, col + 3],
+        ];
+        return { winner: board[row][col], winningCells };
+      }
+    }
+  }
+
+  // Check diagonal (top-right to bottom-left)
+  for (let row = 0; row <= ROWS - 4; row++) {
+    for (let col = COLS - 1; col >= 3; col--) {
+      if (checkLine([row, col], [row + 1, col - 1], [row + 2, col - 2], [row + 3, col - 3])) {
+        winningCells = [
+          [row, col],
+          [row + 1, col - 1],
+          [row + 2, col - 2],
+          [row + 3, col - 3],
+        ];
+        return { winner: board[row][col], winningCells };
+      }
+    }
+  }
+
+  // Check for a draw
+  if (board.every((row) => row.every((cell) => cell !== 0))) {
+    return { winner: 0, winningCells: [] };
+  }
+
+  return { winner: null, winningCells: [] };
+};
+
+// Socket.IO handler
+io.on('connection', (socket) => {
+  const socketToUser = new Map();
+
+  socket.on('join', async ({ gameId, playerId }) => {
+    console.log(`Player ${playerId} attempting to join game ${gameId}`);
+    try {
+      let dbGame = await getGameById(gameId);
+      console.log(`Database game:`, dbGame);
+
+      // Create new game in memory if it doesn't exist
+      if (!games.has(gameId)) {
+        const gameState = createGame(gameId);
+        games.set(gameId, gameState);
+        console.log(`Created new game in memory:`, gameState);
+      }
+
+      const game = games.get(gameId);
+      console.log(`Current game state:`, game);
+
+      // Add player to game if not full
+      if (game.players.length < 2 && !game.players.includes(socket.id)) {
+        game.players.push(socket.id);
+        socket.join(gameId);
+        console.log(`Player ${socket.id} joined game ${gameId}`);
+
+        const playerNumber = game.players.length;
+        socket.emit('playerAssigned', { playerNumber });
+
+        if (game.players.length === 2) {
+          // Only update to 'playing' when second player joins
+          const startResult = await updateGame({
+            params: { action: 'start', gameId },
+            body: { userId: playerId },
+          });
+
+          if (startResult.error) {
+            socket.emit('error', { message: startResult.error });
+            return;
+          }
+
+          game.status = 'playing';
+          io.to(gameId).emit('gameStart', {
+            board: game.board,
+            currentPlayer: game.currentPlayer,
+          });
+          console.log(`Game ${gameId} started with 2 players`);
+        } else {
+          // First player - keep status as pending
+          game.status = 'pending';
+          socket.emit('waiting', { message: 'Waiting for opponent to join...' });
+          console.log(`Game ${gameId} waiting for second player`);
+        }
+      } else {
+        socket.emit('error', { message: 'Game is full or player already joined' });
+      }
+    } catch (error) {
+      console.error(`Error joining game:`, error);
+      socket.emit('error', { message: 'Failed to join game' });
+    }
   });
-}
+
+  socket.on('move', async ({ gameId, col }) => {
+    console.log(`Player ${socket.id} made a move in game ${gameId} at column ${col}`);
+    const game = games.get(gameId);
+    if (!game || game.status !== 'playing') return;
+
+    const playerIndex = game.players.indexOf(socket.id);
+    if (playerIndex === -1 || playerIndex + 1 !== game.currentPlayer) return;
+
+    const newBoard = game.board.map((row) => [...row]);
+    for (let row = ROWS - 1; row >= 0; row--) {
+      if (newBoard[row][col] === 0) {
+        newBoard[row][col] = game.currentPlayer;
+        game.board = newBoard;
+        console.log(`Updated board: ${JSON.stringify(game.board)}`);
+
+        const { winner, winningCells } = checkWinner(game.board);
+        console.log(`Winner check: ${winner}, Winning cells: ${JSON.stringify(winningCells)}`);
+
+        if (winner !== null) {
+          await updateGame({
+            params: { action: 'finish', gameId },
+            body: {
+              userId: socket.id,
+              winner: winner.toString(), // Convert to string
+              score: winner === 0 ? 0 : 1,
+            },
+          });
+
+          game.status = 'finished';
+          io.to(gameId).emit('gameOver', {
+            board: game.board,
+            winner,
+            winningCells,
+          });
+          console.log(`Game ${gameId} finished with winner ${winner}`);
+        } else {
+          game.currentPlayer = game.currentPlayer === 1 ? 2 : 1;
+          io.to(gameId).emit('gameUpdate', {
+            board: game.board,
+            currentPlayer: game.currentPlayer,
+            lastMove: { row, col, player: playerIndex + 1 },
+          });
+          console.log(`Game ${gameId} updated, current player: ${game.currentPlayer}`);
+        }
+        break;
+      }
+    }
+  });
+
+  socket.on('disconnect', async () => {
+    console.log(`Player ${socket.id} disconnected`);
+    games.forEach(async (game, gameId) => {
+      const playerIndex = game.players.indexOf(socket.id);
+      if (playerIndex !== -1) {
+        game.players.splice(playerIndex, 1);
+        game.status = 'finished';
+
+        await updateGame({
+          params: { action: 'finish', gameId },
+          body: {
+            userId: socket.id,
+            winner: playerIndex === 0 ? 2 : 1,
+            score: 0,
+          },
+        });
+
+        io.to(gameId).emit('playerLeft');
+        console.log(`Player ${socket.id} left game ${gameId}`);
+      }
+    });
+  });
+});
 
 //Ajout du plugin fastify-bcrypt pour le hash du mdp
 await app
@@ -183,25 +274,25 @@ await app
     saltWorkFactor: 12,
   })
   .register(cors, {
-    origin: "*",
+    origin: '*',
   })
   .register(fastifySwagger, {
     openapi: {
-      openapi: "3.0.0",
+      openapi: '3.0.0',
       info: {
         title: "Documentation de l'API JDR LOTR",
-        description: "API développée pour un exercice avec React avec Fastify et Sequelize",
-        version: "0.1.0",
+        description: 'API développée pour un exercice avec React avec Fastify et Sequelize',
+        version: '0.1.0',
       },
     },
   })
   .register(fastifySwaggerUi, {
-    routePrefix: "/documentation",
+    routePrefix: '/documentation',
     theme: {
-      title: "Docs - JDR LOTR API",
+      title: 'Docs - JDR LOTR API',
     },
     uiConfig: {
-      docExpansion: "list",
+      docExpansion: 'list',
       deepLinking: false,
     },
     uiHooks: {
@@ -220,22 +311,22 @@ await app
     transformSpecificationClone: true,
   })
   .register(fastifyJWT, {
-    secret: "unanneaupourlesgouvernertous",
+    secret: 'unanneaupourlesgouvernertous',
   });
 /**********
  * Routes
  **********/
-app.get("/", (request, reply) => {
-  reply.send({ documentationURL: "http://localhost:3000/documentation" });
+app.get('/', (request, reply) => {
+  reply.send({ documentationURL: 'http://localhost:3000/documentation' });
 });
 // Fonction pour décoder et vérifier le token
-app.decorate("authenticate", async (request, reply) => {
+app.decorate('authenticate', async (request, reply) => {
   try {
-    const token = request.headers["authorization"].split(" ")[1];
+    const token = request.headers['authorization'].split(' ')[1];
 
     // Vérifier si le token est dans la liste noire
     if (blacklistedTokens.includes(token)) {
-      return reply.status(401).send({ error: "Token invalide ou expiré" });
+      return reply.status(401).send({ error: 'Token invalide ou expiré' });
     }
     await request.jwtVerify();
   } catch (err) {
@@ -255,14 +346,14 @@ const start = async () => {
     await sequelize
       .sync({ alter: true })
       .then(() => {
-        console.log(chalk.green("Base de données synchronisée."));
+        console.log(chalk.green('Base de données synchronisée.'));
       })
       .catch((error) => {
-        console.error("Erreur de synchronisation de la base de données :", error);
+        console.error('Erreur de synchronisation de la base de données :', error);
       });
     await app.listen({ port: 3000 });
-    console.log("Serveur Fastify lancé sur " + chalk.blue("http://localhost:3000"));
-    console.log(chalk.bgYellow("Accéder à la documentation sur http://localhost:3000/documentation"));
+    console.log('Serveur Fastify lancé sur ' + chalk.blue('http://localhost:3000'));
+    console.log(chalk.bgYellow('Accéder à la documentation sur http://localhost:3000/documentation'));
   } catch (err) {
     console.log(err);
     process.exit(1);

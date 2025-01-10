@@ -1,108 +1,103 @@
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import { io } from "socket.io-client";
-import Board from "../components/board";
+import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { io } from 'socket.io-client';
+import Board from '../components/board';
+import { useUser } from '../contexts/userContext';
 
 const ROWS = 6;
 const COLS = 7;
 
 const Game = () => {
+  const { user } = useUser();
   const { gameId } = useParams();
   const [board, setBoard] = useState<number[][]>(Array(ROWS).fill(Array(COLS).fill(0)));
   const [currentPlayer, setCurrentPlayer] = useState<1 | 2>(1);
   const [winner, setWinner] = useState<number | null>(null);
   const [winningCells, setWinningCells] = useState<[number, number][]>([]);
+  const [playerNumber, setPlayerNumber] = useState<number | null>(null);
+  const [gameStatus, setGameStatus] = useState<'waiting' | 'playing' | 'finished'>('waiting');
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+  } | null>(null);
   const socketRef = useRef<any>(null);
 
-  const socket = io("http://localhost:3000");
-
   useEffect(() => {
+    const socket = io('http://localhost:3000');
     socketRef.current = socket;
-    // Add event listeners for socket events
-    socket.on("connect", () => {
-      console.log("Connected to server");
+
+    socket.emit('join', {
+      gameId,
+      playerId: user.id,
     });
 
-    socket.on("disconnect", () => {
-      console.log("Disconnected from server");
+    socket.on('waiting', ({ message }) => {
+      setNotification({
+        message: message,
+        type: 'info',
+      });
     });
 
-    socket.on("move", (data: any) => {
-      // Handle move received from server
-      console.log("Move received:", data);
+    socket.on('playerAssigned', ({ playerNumber }) => {
+      setPlayerNumber(playerNumber);
+      setNotification({
+        message: `You are Player ${playerNumber} (${playerNumber === 1 ? 'Blue' : 'Pink'})`,
+        type: 'success',
+      });
+      setTimeout(() => setNotification(null), 3000);
     });
 
-    // Clean up socket connection on component unmount
+    socket.on('gameStart', ({ board, currentPlayer }) => {
+      setBoard(board);
+      setCurrentPlayer(currentPlayer);
+      setGameStatus('playing');
+      setNotification({
+        message: 'Game started! Good luck!',
+        type: 'info',
+      });
+      setTimeout(() => setNotification(null), 3000);
+    });
+
+    socket.on('gameUpdate', ({ board, currentPlayer }) => {
+      setBoard(board);
+      setCurrentPlayer(currentPlayer);
+    });
+
+    socket.on('gameOver', ({ winner, winningCells, board }) => {
+      setBoard(board);
+      setWinner(winner);
+      setWinningCells(winningCells);
+      setGameStatus('finished');
+    });
+
+    socket.on('playerLeft', () => {
+      setNotification({
+        message: 'Other player has left the game',
+        type: 'error',
+      });
+      setGameStatus('waiting');
+    });
+
+    socket.on('error', ({ message }) => {
+      setNotification({
+        message: message,
+        type: 'error',
+      });
+      setTimeout(() => setNotification(null), 5000);
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [gameId]);
 
   const dropPiece = (col: number) => {
-    if (winner) return;
+    if (winner || playerNumber !== currentPlayer) return;
 
-    const newBoard = board.map((row) => [...row]);
-    for (let row = ROWS - 1; row >= 0; row--) {
-      if (newBoard[row][col] === 0) {
-        newBoard[row][col] = currentPlayer;
-        setBoard(newBoard);
-        setCurrentPlayer(currentPlayer === 1 ? 2 : 1);
-
-        // Send move to server
-        socketRef.current.emit("move", { gameId, playerId: socketRef.current.id, col });
-
-        break;
-      }
-    }
-  };
-
-  const checkWinner = () => {
-    const checkLine = (a: number, b: number, c: number, d: number) => {
-      if (
-        board[a[0]][a[1]] !== 0 &&
-        board[a[0]][a[1]] === board[b[0]][b[1]] &&
-        board[a[0]][a[1]] === board[c[0]][c[1]] &&
-        board[a[0]][a[1]] === board[d[0]][d[1]]
-      ) {
-        setWinner(board[a[0]][a[1]]);
-        setWinningCells([a, b, c, d]);
-        return true;
-      }
-      return false;
-    };
-
-    // Check horizontal
-    for (let row = 0; row < ROWS; row++) {
-      for (let col = 0; col <= COLS - 4; col++) {
-        if (checkLine([row, col], [row, col + 1], [row, col + 2], [row, col + 3])) return;
-      }
-    }
-
-    // Check vertical
-    for (let row = 0; row <= ROWS - 4; row++) {
-      for (let col = 0; col < COLS; col++) {
-        if (checkLine([row, col], [row + 1, col], [row + 2, col], [row + 3, col])) return;
-      }
-    }
-
-    // Check diagonal (top-left to bottom-right)
-    for (let row = 0; row <= ROWS - 4; row++) {
-      for (let col = 0; col <= COLS - 4; col++) {
-        if (checkLine([row, col], [row + 1, col + 1], [row + 2, col + 2], [row + 3, col + 3])) return;
-      }
-    }
-
-    // Check diagonal (top-right to bottom-left)
-    for (let row = 0; row <= ROWS - 4; row++) {
-      for (let col = COLS - 1; col >= 3; col--) {
-        if (checkLine([row, col], [row + 1, col - 1], [row + 2, col - 2], [row + 3, col - 3])) return;
-      }
-    }
-
-    // Check for a draw
-    if (board.every((row) => row.every((cell) => cell !== 0))) {
-      setWinner(0);
-    }
+    socketRef.current.emit('move', {
+      gameId,
+      col,
+    });
   };
 
   const resetGame = () => {
@@ -116,30 +111,136 @@ const Game = () => {
     <div className="hero min-h-screen bg-base-200">
       <div className="hero-content text-center">
         <div className="max-w-md">
-          <h1 className="text-4xl font-bold mb-6">Connect Four - Game {gameId}</h1>
-          <div className="bg-base-100 p-4 rounded-box shadow-xl">
-            <Board board={board} winningCells={winningCells} dropPiece={dropPiece} />
-          </div>
-
-          {winner !== null && (
-            <div className="mt-4">
-              {winner === 0 ? (
-                <h2 className="text-2xl font-bold">It's a draw!</h2>
-              ) : (
-                <h2 className="text-2xl font-bold">Player {winner} wins!</h2>
-              )}
-              <button className="btn btn-primary mt-2" onClick={resetGame}>
-                Play Again
-              </button>
+          {/* Notification Toast */}
+          {notification && (
+            <div className="toast toast-top toast-center">
+              <div className={`alert alert-${notification.type}`}>
+                <span>{notification.message}</span>
+              </div>
             </div>
           )}
-          {winner === null && (
-            <p className="mt-4 text-lg">
-              Player's turn :{" "}
-              <span className={currentPlayer === 1 ? "text-primary font-bold" : "text-secondary font-bold"}>
-                {currentPlayer === 1 ? "Blue" : "Pink"}
-              </span>
-            </p>
+
+          <h1 className="text-4xl font-bold mb-6">Connect Four - Game {gameId}</h1>
+
+          {/* Game Status Badge */}
+          <div className="mb-4">
+            <div
+              className={`badge badge-lg ${
+                gameStatus === 'waiting' ? 'badge-warning' : gameStatus === 'playing' ? 'badge-success' : 'badge-neutral'
+              }`}
+            >
+              {gameStatus === 'waiting' ? 'Waiting for Players' : gameStatus === 'playing' ? 'Game In Progress' : 'Game Finished'}
+            </div>
+          </div>
+
+          {gameStatus === 'waiting' && !playerNumber && (
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title justify-center">Waiting for players...</h2>
+                <div className="flex justify-center">
+                  <span className="loading loading-spinner loading-lg text-primary"></span>
+                </div>
+                <p className="text-sm opacity-75">Share this game ID with your friend: {gameId}</p>
+              </div>
+            </div>
+          )}
+
+          {playerNumber && (
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <div className="bg-base-100 rounded-box">
+                  <Board board={board} winningCells={winningCells} dropPiece={dropPiece} />
+                </div>
+
+                {winner !== null ? (
+                  <div className="mt-4">
+                    {winner === 0 ? (
+                      <div className="alert alert-info">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          className="stroke-current shrink-0 w-6 h-6"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          ></path>
+                        </svg>
+                        <span className="text-2xl font-bold">It's a draw!</span>
+                      </div>
+                    ) : (
+                      <div className={`alert ${winner === playerNumber ? 'alert-success' : 'alert-error'}`}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="stroke-current shrink-0 h-6 w-6"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="text-2xl font-bold">{winner === playerNumber ? 'You won!' : 'You lost!'}</span>
+                      </div>
+                    )}
+                    <button className="btn btn-primary mt-4" onClick={resetGame}>
+                      Play Again
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-2">
+                    <div className={`alert ${currentPlayer === playerNumber ? 'alert-success' : 'alert-warning'} shadow-lg`}>
+                      <div>
+                        {currentPlayer === playerNumber ? (
+                          <>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="stroke-current shrink-0 h-6 w-6"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            <span>Your turn!</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="stroke-current shrink-0 h-6 w-6"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                              />
+                            </svg>
+                            <span>Opponent's turn</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="badge badge-outline gap-2">
+                      You are Player {playerNumber} ({playerNumber === 1 ? 'Blue' : 'Pink'})
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
