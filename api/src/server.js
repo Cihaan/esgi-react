@@ -42,6 +42,12 @@ const games = new Map();
 const ROWS = 6;
 const COLS = 7;
 
+const POINTS = {
+  WIN: 3,
+  DRAW: 1,
+  LOSS: 0,
+};
+
 const createGame = (gameId) => ({
   id: gameId,
   players: [],
@@ -139,6 +145,8 @@ io.on('connection', (socket) => {
 
   socket.on('join', async ({ gameId, playerId }) => {
     console.log(`Player ${playerId} attempting to join game ${gameId}`);
+    socketToUser.set(socket.id, playerId);
+
     try {
       let dbGame = await getGameById(gameId);
       console.log(`Database game:`, dbGame);
@@ -214,12 +222,25 @@ io.on('connection', (socket) => {
         console.log(`Winner check: ${winner}, Winning cells: ${JSON.stringify(winningCells)}`);
 
         if (winner !== null) {
+          let score;
+          let winningPlayerId;
+
+          if (winner === 0) {
+            // It's a draw
+            score = POINTS.DRAW;
+            winningPlayerId = null;
+          } else {
+            // Someone won
+            score = POINTS.WIN;
+            winningPlayerId = socketToUser.get(game.players[winner - 1]);
+          }
+
           await updateGame({
             params: { action: 'finish', gameId },
             body: {
-              userId: socket.id,
-              winner: winner.toString(), // Convert to string
-              score: winner === 0 ? 0 : 1,
+              userId: socketToUser.get(socket.id),
+              winner: winningPlayerId,
+              score: score,
             },
           });
 
@@ -228,8 +249,10 @@ io.on('connection', (socket) => {
             board: game.board,
             winner,
             winningCells,
+            score,
+            winningPlayerId,
           });
-          console.log(`Game ${gameId} finished with winner ${winner}`);
+          console.log(`Game ${gameId} finished with winner ${winner}, score: ${score}`);
         } else {
           game.currentPlayer = game.currentPlayer === 1 ? 2 : 1;
           io.to(gameId).emit('gameUpdate', {
@@ -249,20 +272,28 @@ io.on('connection', (socket) => {
     games.forEach(async (game, gameId) => {
       const playerIndex = game.players.indexOf(socket.id);
       if (playerIndex !== -1) {
+        const winningPlayerSocket = game.players[playerIndex === 0 ? 1 : 0];
+        const winningPlayerId = socketToUser.get(winningPlayerSocket);
+
         game.players.splice(playerIndex, 1);
         game.status = 'finished';
 
         await updateGame({
           params: { action: 'finish', gameId },
           body: {
-            userId: socket.id,
-            winner: playerIndex === 0 ? 2 : 1,
-            score: 0,
+            userId: socketToUser.get(socket.id),
+            winner: winningPlayerId,
+            score: POINTS.WIN, // Winner gets full points when opponent disconnects
           },
         });
 
-        io.to(gameId).emit('playerLeft');
-        console.log(`Player ${socket.id} left game ${gameId}`);
+        socketToUser.delete(socket.id);
+
+        io.to(gameId).emit('playerLeft', {
+          winner: winningPlayerId,
+          score: POINTS.WIN,
+        });
+        console.log(`Player ${socket.id} left game ${gameId}, winner ${winningPlayerId} gets ${POINTS.WIN} points`);
       }
     });
   });

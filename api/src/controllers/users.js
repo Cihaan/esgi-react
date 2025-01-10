@@ -1,8 +1,9 @@
-import crypto from "crypto";
-import { Op } from "sequelize";
-import { getVerificationEmailTemplate } from "../emails/emailTemplate.js";
-import User from "../models/users.js";
-import { sendEmail } from "../utils/sendEmail.js";
+import crypto from 'crypto';
+import { Op } from 'sequelize';
+import { getVerificationEmailTemplate } from '../emails/emailTemplate.js';
+import Game from '../models/games.js';
+import User from '../models/users.js';
+import { sendEmail } from '../utils/sendEmail.js';
 
 async function generateID(id) {
   const { count } = await findAndCountAllUsersById(id);
@@ -49,11 +50,11 @@ export async function findAndCountAllUsersByUsername(username) {
 }
 export async function registerUser(userDatas, bcrypt) {
   if (!userDatas) {
-    return { error: "Aucune donnée à enregistrer" };
+    return { error: 'Aucune donnée à enregistrer' };
   }
   const { firstname, lastname, username, email, password } = userDatas;
   if (!firstname || !lastname || !username || !email || !password) {
-    return { error: "Tous les champs sont obligatoires" };
+    return { error: 'Tous les champs sont obligatoires' };
   }
   //vérification que l'email n'est pas déjà utilisé
   const { count: emailCount } = await findAndCountAllUsersByEmail(email);
@@ -81,7 +82,7 @@ export async function registerUser(userDatas, bcrypt) {
   };
 
   // Generate a verification token
-  const verificationToken = crypto.randomBytes(20).toString("hex");
+  const verificationToken = crypto.randomBytes(20).toString('hex');
 
   // Add the verification token to the user object
   user.verificationToken = verificationToken;
@@ -96,9 +97,9 @@ export async function registerUser(userDatas, bcrypt) {
   const emailHtml = getVerificationEmailTemplate(verificationLink);
 
   // Send the verification email
-  await sendEmail(email, "Verify Your Email", emailHtml);
+  await sendEmail(email, 'Verify Your Email', emailHtml);
 
-  return { message: "User registered. Please check your email to verify your account." };
+  return { message: 'User registered. Please check your email to verify your account.' };
 }
 export async function loginUser(userDatas, app) {
   if (!userDatas) {
@@ -106,7 +107,7 @@ export async function loginUser(userDatas, app) {
   }
   const { email, password } = userDatas;
   if (!email || !password) {
-    return { error: "Tous les champs sont obligatoires" };
+    return { error: 'Tous les champs sont obligatoires' };
   }
   //vérification que l'email est utilisé
   const { count, rows } = await findAndCountAllUsersByEmail(email);
@@ -130,10 +131,10 @@ export async function loginUser(userDatas, app) {
   //comparaison des mots de passe
   const match = await app.bcrypt.compare(password, user.password);
   if (!match) {
-    return { error: "Mot de passe incorrect" };
+    return { error: 'Mot de passe incorrect' };
   }
   // Générer le JWT après une authentification réussie
-  const token = app.jwt.sign({ id: user.id, username: user.username }, { expiresIn: "3h" });
+  const token = app.jwt.sign({ id: user.id, username: user.username }, { expiresIn: '3h' });
   return { token };
 }
 
@@ -141,12 +142,80 @@ export async function verifyEmail(token) {
   const user = await User.findOne({ where: { verificationToken: token } });
 
   if (!user) {
-    return { error: "Invalid verification token" };
+    return { error: 'Invalid verification token' };
   }
 
   user.verified = true;
   user.verificationToken = null;
   await user.save();
 
-  return { message: "Email verified successfully. You can now log in." };
+  return { message: 'Email verified successfully. You can now log in.' };
+}
+
+export async function getUserStats(userId) {
+  try {
+    // Get all games where the user was either player1 or player2
+    const games = await Game.findAll({
+      where: {
+        [Op.or]: [
+          { creator: userId }, // player1
+          { player: userId }, // player2
+        ],
+        state: 'finished', // Only count completed games
+      },
+    });
+
+    // Calculate statistics
+    const totalGames = games.length;
+    const wins = games.filter((game) => game.winner === userId).length;
+
+    // Calculate total score
+    const totalScore = games.reduce((score, game) => {
+      // If user is the winner, add winnerScore
+      if (game.winner === userId && game.winnerScore) {
+        return score + game.winnerScore;
+      }
+      // If it's a draw (winnerScore exists but no winner)
+      else if (!game.winner && game.winnerScore) {
+        return score + 1; // Add 1 point for draws
+      }
+      return score;
+    }, 0);
+
+    // Calculate win rate
+    const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+
+    // Calculate recent games (last 5 games)
+    const recentGames = await Game.findAll({
+      where: {
+        [Op.or]: [{ creator: userId }, { player: userId }],
+        state: 'finished',
+      },
+      order: [['updatedAt', 'DESC']],
+      limit: 5,
+      include: [
+        { model: User, as: 'player1', attributes: ['username'] },
+        { model: User, as: 'player2', attributes: ['username'] },
+        { model: User, as: 'winPlayer', attributes: ['username'] },
+      ],
+    });
+
+    return {
+      totalGames,
+      wins,
+      losses: totalGames - wins,
+      winRate: `${winRate}%`,
+      totalScore,
+      recentGames: recentGames.map((game) => ({
+        id: game.id,
+        opponent: game.creator === userId ? game.player2?.username : game.player1?.username,
+        winner: game.winPlayer?.username || 'Draw',
+        score: game.winnerScore,
+        date: game.updatedAt,
+      })),
+    };
+  } catch (error) {
+    console.error('Error getting user stats:', error);
+    return { error: 'Failed to get user statistics' };
+  }
 }

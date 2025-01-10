@@ -4,10 +4,16 @@ import { io } from 'socket.io-client';
 import Board from '../components/board';
 import { useUser } from '../contexts/userContext';
 
+interface GameScore {
+  score: number;
+  winningPlayerId: string | null;
+}
+
 const ROWS = 6;
 const COLS = 7;
 
 const Game = () => {
+  const [gameScore, setGameScore] = useState<GameScore | null>(null);
   const { user } = useUser();
   const { gameId } = useParams();
   const [board, setBoard] = useState<number[][]>(Array(ROWS).fill(Array(COLS).fill(0)));
@@ -63,19 +69,36 @@ const Game = () => {
       setCurrentPlayer(currentPlayer);
     });
 
-    socket.on('gameOver', ({ winner, winningCells, board }) => {
+    socket.on('gameOver', ({ winner, winningCells, board, score, winningPlayerId }) => {
       setBoard(board);
       setWinner(winner);
       setWinningCells(winningCells);
       setGameStatus('finished');
+      setGameScore({ score, winningPlayerId });
+
+      // Show score notification
+      let scoreMessage = '';
+      if (winner === 0) {
+        scoreMessage = `Draw! Both players get ${score} point`;
+      } else if (winningPlayerId === user.id) {
+        scoreMessage = `You won! +${score} points`;
+      } else {
+        scoreMessage = `You lost! +0 points`;
+      }
+
+      setNotification({
+        message: scoreMessage,
+        type: winner === 0 ? 'info' : winningPlayerId === user.id ? 'success' : 'error',
+      });
     });
 
-    socket.on('playerLeft', () => {
+    socket.on('playerLeft', ({ winner, score }) => {
       setNotification({
-        message: 'Other player has left the game',
-        type: 'error',
+        message: winner === user.id ? `Other player left. You win! +${score} points` : 'You left the game',
+        type: winner === user.id ? 'success' : 'error',
       });
-      setGameStatus('waiting');
+      setGameStatus('finished');
+      setGameScore({ score, winningPlayerId: winner });
     });
 
     socket.on('error', ({ message }) => {
@@ -170,6 +193,7 @@ const Game = () => {
                           ></path>
                         </svg>
                         <span className="text-2xl font-bold">It's a draw!</span>
+                        {gameScore && <p className="text-sm">Both players get {gameScore.score} point</p>}
                       </div>
                     ) : (
                       <div className={`alert ${winner === playerNumber ? 'alert-success' : 'alert-error'}`}>
@@ -187,6 +211,11 @@ const Game = () => {
                           />
                         </svg>
                         <span className="text-2xl font-bold">{winner === playerNumber ? 'You won!' : 'You lost!'}</span>
+                        {gameScore && (
+                          <p className="text-sm">
+                            {gameScore.winningPlayerId === user.id ? `+${gameScore.score} points` : '+0 points'}
+                          </p>
+                        )}
                       </div>
                     )}
                     <button className="btn btn-primary mt-4" onClick={resetGame}>

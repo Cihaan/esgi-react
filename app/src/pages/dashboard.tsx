@@ -1,28 +1,59 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import gameCard from "../components/game-card";
-import { useUser } from "../contexts/userContext";
+import axios from 'axios';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import gameCard from '../components/game-card';
+import { useUser } from '../contexts/userContext';
+
+interface GameWithScore {
+  id: string;
+  state: string;
+  winnerScore: number;
+  player1: { id: string; username: string };
+  player2: { id: string; username: string };
+  winner: { id: string; username: string } | null;
+}
 
 const Dashboard = () => {
+  const [userStats, setUserStats] = useState({
+    totalGames: 0,
+    wins: 0,
+    totalScore: 0,
+  });
   const { user, isLoggedIn, getToken } = useUser();
-  const [gameId, setGameId] = useState("");
-  const [message, setMessage] = useState("");
+  const [gameId, setGameId] = useState('');
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [gameState, setGameState] = useState(null);
   const [games, setGames] = useState([]);
-  const API_URL = "http://localhost:3000";
+  const API_URL = 'http://localhost:3000';
 
   useEffect(() => {
-    // Fetch available games when component mounts
     fetchGames();
-  }, []);
+    fetchUserStats();
+  }, [user]);
+
+  const fetchUserStats = async () => {
+    const token = getToken();
+    console.log('token', { user, isLoggedIn, token });
+
+    if (!user) return;
+
+    try {
+      const response = await axios.get(`${API_URL}/users/${user.id}/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUserStats(response.data);
+    } catch (error) {
+      console.log('error', error);
+      setError(`Error fetching stats: ${error.response?.data?.error || error.message}`);
+    }
+  };
 
   const fetchGames = async () => {
     const token = getToken();
     if (!isLoggedIn()) {
-      setMessage("User is not logged in.");
+      setMessage('User is not logged in.');
       return;
     }
     try {
@@ -38,7 +69,7 @@ const Dashboard = () => {
   const createGame = async () => {
     const token = getToken();
     if (!isLoggedIn()) {
-      setMessage("User is not logged in.");
+      setMessage('User is not logged in.');
       return;
     }
     try {
@@ -53,7 +84,7 @@ const Dashboard = () => {
       }
       setMessage(`Game created with ID: ${response.data.game.id}`);
       setGameState({ id: response.data.game.id, board: Array(6).fill(Array(7).fill(null)) });
-      navigate("/game/" + response.data.game.id);
+      navigate('/game/' + response.data.game.id);
 
       // ...
     } catch (error) {
@@ -66,7 +97,7 @@ const Dashboard = () => {
   const joinGame = async (thisGame) => {
     const token = getToken();
     if (!isLoggedIn() || !user || !thisGame) {
-      setMessage("Unable to join game. Check login status and game ID.");
+      setMessage('Unable to join game. Check login status and game ID.');
       return;
     }
     try {
@@ -80,7 +111,7 @@ const Dashboard = () => {
         return;
       }
       setGameState({ id: response.data.id, board: Array(6).fill(Array(7).fill(null)) });
-      navigate("/game/" + response.data.id);
+      navigate('/game/' + response.data.id);
     } catch (error) {
       setError(`Error: ${error.response.data.error}`);
     } finally {
@@ -96,6 +127,23 @@ const Dashboard = () => {
           <p className="py-6">Welcome to your personal dashboard.</p>
           {isLoggedIn() ? (
             <>
+              <div className="stats shadow mb-8">
+                <div className="stat">
+                  <div className="stat-title">Total Games</div>
+                  <div className="stat-value">{userStats.totalGames}</div>
+                </div>
+
+                <div className="stat">
+                  <div className="stat-title">Wins</div>
+                  <div className="stat-value">{userStats.wins}</div>
+                </div>
+
+                <div className="stat">
+                  <div className="stat-title">Total Score</div>
+                  <div className="stat-value">{userStats.totalScore}</div>
+                </div>
+              </div>
+
               <div>
                 <button onClick={createGame} className="btn btn-primary mt-4">
                   Create Game
