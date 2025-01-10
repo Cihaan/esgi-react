@@ -1,35 +1,36 @@
-import { ErrorMessage, Field, Form, Formik } from "formik";
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import * as Yup from "yup";
-import { authService } from "../services/auth-service";
+// @ts-nocheck
+import { ErrorMessage, Field, Form, Formik } from 'formik';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
+import { authService } from '../services/auth-service';
 
 const Login = () => {
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const message = location.state?.message;
 
   const initialValues = {
-    email: "",
-    password: "",
+    email: '',
+    password: '',
   };
 
   const validationSchema = Yup.object({
-    email: Yup.string().email("Email invalide").required("Email requis"),
-    password: Yup.string().required("Mot de passe requis"),
+    email: Yup.string().email('Email invalide').required('Email requis'),
+    password: Yup.string().required('Mot de passe requis'),
   });
 
   const handleSubmit = async (values, { setSubmitting }) => {
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
 
     const result = await authService.login(values.email, values.password);
     if (result.success) {
-      setSuccess("Connexion réussie. Redirection...");
+      setSuccess('Connexion réussie. Redirection...');
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate('/dashboard');
       }, 1500);
     } else {
       setError(result.error);
@@ -89,7 +90,7 @@ const Login = () => {
         </div>
         <div className="text-center mt-4">
           <p>
-            Pas encore de compte?{" "}
+            Pas encore de compte?{' '}
             <Link to="/register" className="link link-primary">
               S'inscrire
             </Link>

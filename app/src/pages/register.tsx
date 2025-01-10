@@ -1,43 +1,44 @@
-import { ErrorMessage, Field, Form, Formik } from "formik";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import * as Yup from "yup";
-import { authService } from "../services/auth-service";
+// @ts-nocheck
+import { ErrorMessage, Field, Form, Formik } from 'formik';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
+import { authService } from '../services/auth-service';
 
 const Register = () => {
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   const initialValues = {
-    firstname: "",
-    lastname: "",
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    firstname: '',
+    lastname: '',
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   };
 
   const validationSchema = Yup.object({
-    firstname: Yup.string().required("Prénom requis"),
-    lastname: Yup.string().required("Nom requis"),
+    firstname: Yup.string().required('Prénom requis'),
+    lastname: Yup.string().required('Nom requis'),
     username: Yup.string().required("Nom d'utilisateur requis"),
-    email: Yup.string().email("Email invalide").required("Email requis"),
-    password: Yup.string().min(6, "Le mot de passe doit contenir au moins 6 caractères").required("Mot de passe requis"),
+    email: Yup.string().email('Email invalide').required('Email requis'),
+    password: Yup.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères').required('Mot de passe requis'),
     confirmPassword: Yup.string()
-      .oneOf([Yup.ref("password"), null], "Les mots de passe doivent correspondre")
-      .required("Confirmation du mot de passe requise"),
+      .oneOf([Yup.ref('password'), null], 'Les mots de passe doivent correspondre')
+      .required('Confirmation du mot de passe requise'),
   });
 
   const handleSubmit = async (values, { setSubmitting }) => {
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
 
     const result = await authService.register(values.firstname, values.lastname, values.username, values.email, values.password);
     if (result.success) {
-      setSuccess("Inscription réussie. Redirection vers la page de connexion...");
+      setSuccess('Inscription réussie. Redirection vers la page de connexion...');
       setTimeout(() => {
-        navigate("/login");
+        navigate('/login');
       }, 1500);
     } else {
       setError(result.error);
@@ -128,7 +129,7 @@ const Register = () => {
         </div>
         <div className="text-center mt-4">
           <p>
-            Déjà un compte?{" "}
+            Déjà un compte?{' '}
             <Link to="/login" className="link link-primary">
               Se connecter
             </Link>

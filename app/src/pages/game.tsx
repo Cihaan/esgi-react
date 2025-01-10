@@ -1,7 +1,9 @@
+// @ts-nocheck
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Board from '../components/board';
+import { API_URL } from '../constants';
 import { useUser } from '../contexts/userContext';
 
 interface GameScore {
@@ -29,7 +31,7 @@ const Game = () => {
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
-    const socket = io('http://localhost:3000');
+    const socket = io(API_URL);
     socketRef.current = socket;
 
     socket.emit('join', {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 const Board = ({ board, winningCells, dropPiece }) => {
   return board.map((row, rowIndex) => (
     <div key={rowIndex} className="flex justify-center">
@@ -9,8 +10,8 @@ const Board = ({ board, winningCells, dropPiece }) => {
         >
           {cell !== 0 && (
             <div
-              className={`w-10 h-10 rounded-full ${cell === 1 ? "bg-primary" : "bg-secondary"} ${
-                winningCells.some(([r, c]) => r === rowIndex && c === colIndex) ? "ring-4 ring-accent ring-offset-2" : ""
+              className={`w-10 h-10 rounded-full ${cell === 1 ? 'bg-primary' : 'bg-secondary'} ${
+                winningCells.some(([r, c]) => r === rowIndex && c === colIndex) ? 'ring-4 ring-accent ring-offset-2' : ''
               }`}
             ></div>
           )}

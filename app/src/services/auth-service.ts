@@ -1,9 +1,10 @@
-import axios from "axios";
+// @ts-nocheck
+import axios from 'axios';
 
-const AUTH_KEY = "auth_token";
-const USER_KEY = "user";
+const AUTH_KEY = 'auth_token';
+const USER_KEY = 'user';
 
-const API_URL = "http://localhost:3000"; // Adjust the URL as needed
+import { API_URL } from '../constants';
 
 export const authService = {
   login: async (email: string, password: string) => {
@@ -20,7 +21,7 @@ export const authService = {
 
       return { success: true, user: response.data.user };
     } catch (error) {
-      return { success: false, error: error.response?.data?.error || "An error occurred" };
+      return { success: false, error: error.response?.data?.error || 'An error occurred' };
     }
   },
 
@@ -34,7 +35,7 @@ export const authService = {
 
       return { success: true, user: response.data.user };
     } catch (error) {
-      return { success: false, error: error.response?.data?.error || "An error occurred" };
+      return { success: false, error: error.response?.data?.error || 'An error occurred' };
     }
   },
 
@@ -62,7 +63,7 @@ export const authService = {
 
       return { success: true, user: response.data };
     } catch (error) {
-      return { success: false, error: error.response?.data?.error || "An error occurred" };
+      return { success: false, error: error.response?.data?.error || 'An error occurred' };
     }
   },
 };

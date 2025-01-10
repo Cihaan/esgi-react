@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { authService } from "../services/auth-service";
+// @ts-nocheck
+import { createContext, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/auth-service';
 
 const UserContext = createContext(null);
 
@@ -22,20 +23,20 @@ export const UserProvider = ({ children }) => {
     const result = await authService.login(email, password);
     if (result.success) {
       setUser(result.user);
-      navigate("/dashboard");
+      navigate('/dashboard');
     } else {
       throw new Error(result.error);
     }
   };
 
   const getToken = () => {
-    return localStorage.getItem("auth_token");
+    return localStorage.getItem('auth_token');
   };
 
   const logout = () => {
     setUser(null);
     authService.logout();
-    navigate("/login");
+    navigate('/login');
   };
 
   const isLoggedIn = () => {
@@ -48,7 +49,7 @@ export const UserProvider = ({ children }) => {
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };

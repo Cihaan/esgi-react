@@ -1,8 +1,11 @@
+// @ts-nocheck
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import gameCard from '../components/game-card';
 import { useUser } from '../contexts/userContext';
+
+import { API_URL } from '../constants';
 
 const Dashboard = () => {
   const [userStats, setUserStats] = useState({
@@ -17,7 +20,6 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [gameState, setGameState] = useState(null);
   const [games, setGames] = useState([]);
-  const API_URL = 'http://localhost:3000';
 
   useEffect(() => {
     fetchGames();

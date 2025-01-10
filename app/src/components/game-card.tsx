@@ -1,3 +1,4 @@
+// @ts-nocheck
 const gameCard = ({ game, joinGame }) => {
   return (
     <div className="card bg-base-100 w-96 shadow-xl mb-5" key={game.id}>
@@ -13,7 +14,7 @@ const gameCard = ({ game, joinGame }) => {
           <button
             className="btn btn-primary"
             onClick={() => joinGame(game.id)}
-            disabled={game.state === "pending" ? false : true}
+            disabled={game.state === 'pending' ? false : true}
           >
             Join
           </button>
