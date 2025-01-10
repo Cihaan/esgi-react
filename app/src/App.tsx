@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useEffect, useState } from 'react';
-import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { Navigate, Route, HashRouter as Router, Routes } from 'react-router-dom';
 import Navbar from './components/navbar';
 import { UserProvider, useUser } from './contexts/userContext';
 import Dashboard from './pages/dashboard';
