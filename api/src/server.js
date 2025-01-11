@@ -18,7 +18,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 1000;
+const PORT = process.env.PORT;
 
 //Test de la connexion
 try {
@@ -388,9 +388,9 @@ const start = async () => {
       .catch((error) => {
         console.error('Erreur de synchronisation de la base de données :', error);
       });
-    await app.listen({ port: PORT });
-    console.log('Serveur Fastify lancé sur ' + chalk.blue(`http://localhost:${PORT}`));
-    console.log(chalk.bgYellow(`Accéder à la documentation sur http://localhost:${PORT}/documentation`));
+    await app.listen({ port: PORT, host: '0.0.0.0' });
+    console.log('Serveur Fastify lancé sur ' + chalk.blue(`http://0.0.0.0:${PORT}`));
+    console.log(chalk.bgYellow(`Accéder à la documentation sur http://0.0.0.0:${PORT}/documentation`));
   } catch (err) {
     console.log(err);
     process.exit(1);
