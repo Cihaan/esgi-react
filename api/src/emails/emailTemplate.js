@@ -1,3 +1,5 @@
+import mjml2html from 'mjml';
+
 export function getVerificationEmailTemplate(verificationLink) {
   const mjmlTemplate = `
     <mjml>
