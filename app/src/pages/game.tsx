@@ -145,7 +145,24 @@ const Game = () => {
             </div>
           )}
 
-          <h1 className="text-4xl font-bold mb-6">Connect Four - Game {gameId}</h1>
+          <h1 className="text-4xl font-bold mb-6">Connect Four - Game</h1>
+          <h2 className="text-sm font-normal mb-6">{gameId}</h2>
+          {/* Copy Game ID Button */}
+          <div className="mb-4">
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                navigator.clipboard.writeText(gameId || '');
+                setNotification({
+                  message: 'Game ID copied to clipboard!',
+                  type: 'success',
+                });
+                setTimeout(() => setNotification(null), 3000);
+              }}
+            >
+              Copy Game ID
+            </button>
+          </div>
 
           {/* Game Status Badge */}
           <div className="mb-4">

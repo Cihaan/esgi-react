@@ -30,7 +30,9 @@ const Dashboard = () => {
     const token = getToken();
     console.log('token', { user, isLoggedIn, token });
 
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     try {
       const response = await axios.get(`${API_URL}/users/${user.id}/stats`, {
@@ -144,39 +146,7 @@ const Dashboard = () => {
           <p className="py-4">Welcome to Connect 4.</p>
         </div>
 
-        {/* Alerts */}
-        <div className="space-y-4">
-          {message && (
-            <div className="alert alert-info">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                ></path>
-              </svg>
-              <span>{message}</span>
-            </div>
-          )}
-          {error && (
-            <div className="alert alert-error">
-              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        <br />
-
-        {isLoggedIn() ? (
+        {isLoggedIn() && (
           <div className="space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -231,33 +201,93 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Alerts */}
+            <div className="space-y-4">
+              {message && (
+                <div className="alert alert-info">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="stroke-current shrink-0 w-6 h-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                  <span>{message}</span>
+                </div>
+              )}
+              {error && (
+                <div className="alert alert-error">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+            </div>
+
+            <br />
+
             {/* Available Games */}
-            {games.length > 0 && (
+            {games.filter((game) => game.state !== 'finished').length > 0 ? (
               <div className="card bg-base-200 shadow-xl">
                 <div className="card-body">
                   <h2 className="card-title justify-center">Available Games</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    {games.map((game) => (
-                      <div key={game.id} className="card bg-base-100 shadow-sm">
-                        {gameCard({ game, joinGame })}
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-4">
+                    {games
+                      .filter((game) => game.state !== 'finished')
+                      .map((game) => (
+                        <div key={game.id}>{gameCard({ game, joinGame })}</div>
+                      ))}
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="card bg-base-200 shadow-xl">
-            <div className="card-body items-center text-center">
-              <h2 className="card-title">Not Logged In</h2>
-              <p>Please log in to create or join games.</p>
-              <div className="card-actions justify-end">
-                <button className="btn btn-primary" onClick={() => navigate('/login')}>
-                  Log In
-                </button>
+            ) : (
+              <div className="card bg-base-200 shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title justify-center">Available Games</h2>
+                  <p className="card-body justify-center">No games available</p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Finished Games */}
+            {games.filter((game) => game.state === 'finished').length > 0 ? (
+              <div className="card bg-base-200 shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title justify-center">Finished Games</h2>
+                  <div className="flex flex-wrap gap-4 mt-4">
+                    {games
+                      .filter((game) => game.state === 'finished')
+                      .map((game) => (
+                        <div key={game.id}>{gameCard({ game, joinGame })}</div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="card bg-base-200 shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title justify-center">Finished Games</h2>
+                  <p className="card-body justify-center">No finished games available</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
