@@ -18,6 +18,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const PORT = process.env.PORT || 1000;
+
 //Test de la connexion
 try {
   sequelize.authenticate();
@@ -386,9 +388,9 @@ const start = async () => {
       .catch((error) => {
         console.error('Erreur de synchronisation de la base de données :', error);
       });
-    await app.listen({ port: 3000 });
-    console.log('Serveur Fastify lancé sur ' + chalk.blue('http://localhost:3000'));
-    console.log(chalk.bgYellow('Accéder à la documentation sur http://localhost:3000/documentation'));
+    await app.listen({ port: PORT });
+    console.log('Serveur Fastify lancé sur ' + chalk.blue(`http://localhost:${PORT}`));
+    console.log(chalk.bgYellow(`Accéder à la documentation sur http://localhost:${PORT}/documentation`));
   } catch (err) {
     console.log(err);
     process.exit(1);
