@@ -9,9 +9,9 @@ dotenv.config();
  */
 export const sequelize = new Sequelize({
   dialect: MySqlDialect,
-  database: 'esgi-react',
-  user: 'root',
-  password: 'password',
-  host: 'localhost',
-  port: 3306,
+  database: process.env.MYSQL_NAME,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  host: process.env.MYSQL_HOST,
+  port: process.env.MYSQL_PORT,
 });
