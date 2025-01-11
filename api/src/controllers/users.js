@@ -94,7 +94,7 @@ export async function registerUser(userDatas, bcrypt) {
   const savedUser = await User.create(user);
 
   // Generate the verification link
-  const verificationLink = `${process.env.APP_URL}/verify-email/${verificationToken}`;
+  const verificationLink = `${process.env.API_URL}/verify-email/${verificationToken}`;
 
   // Generate the email HTML
   const emailHtml = getVerificationEmailTemplate(verificationLink);
