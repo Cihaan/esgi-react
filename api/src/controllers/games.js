@@ -1,4 +1,7 @@
-import Game from "../models/games.js";
+import dotenv from 'dotenv';
+import Game from '../models/games.js';
+
+dotenv.config();
 
 export async function createGame(userId) {
   if (!userId) {
@@ -12,7 +15,7 @@ export async function updateGame(request) {
   const userId = request.body.userId;
 
   if (request.params.length < 2) {
-    return { error: "Il manque des paramètres" };
+    return { error: 'Il manque des paramètres' };
   }
   const { action, gameId } = request.params;
   if (!userId) {
@@ -25,34 +28,34 @@ export async function updateGame(request) {
     return { error: "La partie n'existe pas." };
   }
 
-  if (game.dataValues.state == "finished") {
-    return { error: "Cette partie est déjà terminée !" };
+  if (game.dataValues.state == 'finished') {
+    return { error: 'Cette partie est déjà terminée !' };
   }
 
   switch (action) {
-    case "join":
+    case 'join':
       if (game.dataValues.player != null) {
-        return { error: "Il y a déjà 2 joueurs dans cette partie !" };
+        return { error: 'Il y a déjà 2 joueurs dans cette partie !' };
       }
-      if (game.dataValues.state != "pending") {
+      if (game.dataValues.state != 'pending') {
         return { error: "Cette partie n'est plus en attente." };
       }
       await game.setPlayer2(userId);
-    case "start":
+    case 'start':
       //update state
-      game.state = "playing";
+      game.state = 'playing';
 
       break;
-    case "finish":
-      game.state = "finished";
+    case 'finish':
+      game.state = 'finished';
       if (!request.body.score) {
-        return { error: "Le score est manquant." };
+        return { error: 'Le score est manquant.' };
       }
       game.winnerScore = request.body.score;
       game.winner = request.body.winner;
       break;
     default:
-      return { error: "Action inconnue" };
+      return { error: 'Action inconnue' };
   }
   game.save();
   return game;

@@ -1,4 +1,7 @@
+import dotenv from 'dotenv';
 import { getUserById, getUsers, getUserStats, loginUser, registerUser, verifyEmail } from '../controllers/users.js';
+
+dotenv.config();
 
 export function usersRoutes(app) {
   app

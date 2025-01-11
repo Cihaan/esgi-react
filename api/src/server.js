@@ -14,6 +14,10 @@ import { Server } from 'socket.io';
 import { sequelize } from './bdd.js';
 import { getGameById, updateGame } from './controllers/games.js';
 
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 //Test de la connexion
 try {
   sequelize.authenticate();

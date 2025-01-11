@@ -1,9 +1,12 @@
 import crypto from 'crypto';
+import dotenv from 'dotenv';
 import { Op } from 'sequelize';
 import { getVerificationEmailTemplate } from '../emails/emailTemplate.js';
 import Game from '../models/games.js';
 import User from '../models/users.js';
 import { sendEmail } from '../utils/sendEmail.js';
+
+dotenv.config();
 
 async function generateID(id) {
   const { count } = await findAndCountAllUsersById(id);
